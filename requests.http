@@ -1,0 +1,178 @@
+### Variables de entorno
+@baseURL = http://localhost:5000/api
+@email = testuser@example.com
+@password = password123
+@token = 
+
+### ============================================
+### AUTENTICACIÓN
+### ============================================
+
+### Registrar nuevo usuario
+POST {{baseURL}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "nombre": "Usuario Test"
+}
+
+### Login
+POST {{baseURL}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Obtener perfil del usuario
+GET {{baseURL}}/auth/perfil
+Authorization: Bearer {{token}}
+
+### Actualizar perfil
+PUT {{baseURL}}/auth/perfil
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Nuevo Nombre",
+  "email": "newemail@example.com"
+}
+
+### Cambiar contraseña
+POST {{baseURL}}/auth/cambiar-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "passwordActual": "{{password}}",
+  "passwordNueva": "newpassword456",
+  "passwordNuevaConfirm": "newpassword456"
+}
+
+### ============================================
+### PRODUCTOS
+### ============================================
+
+### Obtener todos los productos
+GET {{baseURL}}/products?pagina=1&limite=10
+
+### Buscar productos por categoría
+GET {{baseURL}}/products?categoria=Shounen&pagina=1&limite=10
+
+### Buscar producto por texto
+GET {{baseURL}}/products?buscar=One%20Piece
+
+### Obtener producto por ID (reemplaza con un ID real)
+GET {{baseURL}}/products/PRODUCT_ID_AQUI
+
+### Obtener productos de una categoría
+GET {{baseURL}}/products/categoria/Shounen?pagina=1&limite=10
+
+### Crear nuevo producto (solo admin)
+POST {{baseURL}}/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Nuevo Manga",
+  "descripcion": "Descripción del nuevo manga",
+  "precio": 16.99,
+  "imagen": "https://via.placeholder.com/300x400?text=Nuevo+Manga",
+  "stock": 50,
+  "categoria": "Shounen",
+  "autor": "Autor del Manga",
+  "editorial": "Editorial"
+}
+
+### Actualizar producto (solo admin)
+PUT {{baseURL}}/products/PRODUCT_ID_AQUI
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Manga Actualizado",
+  "precio": 17.99,
+  "stock": 60
+}
+
+### Actualizar stock (solo admin)
+PATCH {{baseURL}}/products/PRODUCT_ID_AQUI/stock
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cantidad": 100
+}
+
+### Eliminar producto (solo admin)
+DELETE {{baseURL}}/products/PRODUCT_ID_AQUI
+Authorization: Bearer {{token}}
+
+### ============================================
+### ÓRDENES
+### ============================================
+
+### Crear una orden
+POST {{baseURL}}/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "productoId": "PRODUCT_ID_1",
+      "cantidad": 2
+    },
+    {
+      "productoId": "PRODUCT_ID_2",
+      "cantidad": 1
+    }
+  ],
+  "direccion": {
+    "calle": "Calle Principal 123",
+    "ciudad": "Madrid",
+    "codigoPostal": "28001",
+    "pais": "España"
+  },
+  "notas": "Entregar después de las 5 PM"
+}
+
+### Obtener mis órdenes
+GET {{baseURL}}/orders/mis-ordenes?pagina=1&limite=10
+Authorization: Bearer {{token}}
+
+### Obtener una orden específica
+GET {{baseURL}}/orders/ORDER_ID_AQUI
+Authorization: Bearer {{token}}
+
+### Cancelar una orden
+PUT {{baseURL}}/orders/ORDER_ID_AQUI/cancelar
+Authorization: Bearer {{token}}
+
+### Obtener todas las órdenes (solo admin)
+GET {{baseURL}}/orders?pagina=1&limite=10&estado=pendiente
+Authorization: Bearer {{token}}
+
+### Actualizar estado de orden (solo admin)
+PUT {{baseURL}}/orders/ORDER_ID_AQUI/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "estado": "enviado",
+  "numeroSeguimiento": "TRACK123456789"
+}
+
+### Obtener estadísticas (solo admin)
+GET {{baseURL}}/orders/stats/dashboard
+Authorization: Bearer {{token}}
+
+### ============================================
+### SALUD DEL SERVIDOR
+### ============================================
+
+### Health check
+GET {{baseURL}}/health
