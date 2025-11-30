@@ -70,15 +70,7 @@ const Product = sequelize.define('Product', {
   }
 }, {
   timestamps: true,
-  tableName: 'products',
-  indexes: [
-    {
-      fields: ['nombre', 'descripcion']
-    },
-    {
-      fields: ['categoria']
-    }
-  ]
+  tableName: 'products'
 });
 
 module.exports = Product;

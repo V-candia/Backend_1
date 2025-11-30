@@ -53,15 +53,7 @@ const Order = sequelize.define('Order', {
   }
 }, {
   timestamps: true,
-  tableName: 'orders',
-  indexes: [
-    {
-      fields: ['usuarioId', 'createdAt']
-    },
-    {
-      fields: ['estado']
-    }
-  ]
+  tableName: 'orders'
 });
 
 // Relaciones

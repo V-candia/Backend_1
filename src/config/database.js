@@ -17,12 +17,19 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
     dialect: 'mysql',
+    charset: 'utf8mb4',
+    collate: 'utf8mb4_unicode_ci',
     logging: false,
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000,
+    },
+    define: {
+      timestamps: true,
+      underscored: false,
+      freezeTableName: true
     }
   }
 );
@@ -33,12 +40,18 @@ const sequelize = new Sequelize(
  */
 const connectDB = async () => {
   try {
+    // Primero deshabilitar restricciones de claves foráneas
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    
     await sequelize.authenticate();
     console.log('OK MySQL conectado exitosamente');
     
-    // Sincronizar modelos
-    await sequelize.sync({ alter: false });
+    // Sincronizar modelos - eliminar y recrear tablas
+    await sequelize.sync({ force: true });
     console.log('OK Modelos sincronizados');
+    
+    // Re-habilitar restricciones de claves foráneas
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
     
     return sequelize;
   } catch (error) {

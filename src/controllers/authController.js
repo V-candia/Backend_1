@@ -9,7 +9,7 @@ const { validarRegistro, validarLogin } = require('../utils/validacion');
 const generarToken = (usuario) => {
   return jwt.sign(
     { 
-      _id: usuario._id, 
+      id: usuario.id, 
       email: usuario.email,
       isAdmin: usuario.isAdmin 
     },
@@ -37,7 +37,7 @@ exports.register = async (req, res, next) => {
     const { email, password, nombre } = value;
 
     // Verificar si el usuario ya existe
-    let usuario = await User.findOne({ email });
+    let usuario = await User.findOne({ where: { email } });
     if (usuario) {
       return res.status(400).json({
         success: false,
@@ -46,14 +46,12 @@ exports.register = async (req, res, next) => {
     }
 
     // Crear nuevo usuario
-    usuario = new User({
+    usuario = await User.create({
       email,
       password,
       nombre,
       isAdmin: false
     });
-
-    await usuario.save();
 
     // Generar token
     const token = generarToken(usuario);
@@ -62,7 +60,7 @@ exports.register = async (req, res, next) => {
       success: true,
       mensaje: 'Usuario registrado exitosamente',
       token,
-      usuario: usuario.toJSON()
+      usuario: usuario.toJSON ? usuario.toJSON() : usuario.dataValues
     });
   } catch (error) {
     next(error);
@@ -87,8 +85,8 @@ exports.login = async (req, res, next) => {
 
     const { email, password } = value;
 
-    // Buscar usuario (incluir password para comparación)
-    const usuario = await User.findOne({ email }).select('+password');
+    // Buscar usuario
+    const usuario = await User.findOne({ where: { email } });
     
     if (!usuario) {
       return res.status(401).json({
@@ -121,7 +119,7 @@ exports.login = async (req, res, next) => {
       success: true,
       mensaje: 'Login exitoso',
       token,
-      usuario: usuario.toJSON()
+      usuario: usuario.dataValues
     });
   } catch (error) {
     next(error);
@@ -134,7 +132,7 @@ exports.login = async (req, res, next) => {
  */
 exports.obtenerPerfil = async (req, res, next) => {
   try {
-    const usuario = await User.findById(req.usuario._id);
+    const usuario = await User.findByPk(req.usuario.id);
     
     if (!usuario) {
       return res.status(404).json({
@@ -145,7 +143,7 @@ exports.obtenerPerfil = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      usuario: usuario.toJSON()
+      usuario: usuario.dataValues
     });
   } catch (error) {
     next(error);
@@ -164,7 +162,7 @@ exports.actualizarPerfil = async (req, res, next) => {
     if (nombre) actualizaciones.nombre = nombre;
     if (email && email !== req.usuario.email) {
       // Verificar que el email no esté registrado
-      const usuarioExistente = await User.findOne({ email });
+      const usuarioExistente = await User.findOne({ where: { email } });
       if (usuarioExistente) {
         return res.status(400).json({
           success: false,
@@ -174,16 +172,17 @@ exports.actualizarPerfil = async (req, res, next) => {
       actualizaciones.email = email;
     }
 
-    const usuario = await User.findByIdAndUpdate(
-      req.usuario._id,
+    await User.update(
       actualizaciones,
-      { new: true, runValidators: true }
+      { where: { id: req.usuario.id } }
     );
+
+    const usuario = await User.findByPk(req.usuario.id);
 
     res.status(200).json({
       success: true,
       mensaje: 'Perfil actualizado',
-      usuario: usuario.toJSON()
+      usuario: usuario.dataValues
     });
   } catch (error) {
     next(error);
@@ -212,7 +211,7 @@ exports.cambiarPassword = async (req, res, next) => {
       });
     }
 
-    const usuario = await User.findById(req.usuario._id).select('+password');
+    const usuario = await User.findByPk(req.usuario.id);
 
     // Verificar contraseña actual
     const esValida = await usuario.matchPassword(passwordActual);
@@ -223,8 +222,10 @@ exports.cambiarPassword = async (req, res, next) => {
       });
     }
 
-    usuario.password = passwordNueva;
-    await usuario.save();
+    await User.update(
+      { password: passwordNueva },
+      { where: { id: req.usuario.id } }
+    );
 
     res.status(200).json({
       success: true,

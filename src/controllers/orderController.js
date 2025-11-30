@@ -1,327 +1,214 @@
-const Order = require('../models/Order');
-const Product = require('../models/Product');
-const { validarOrden } = require('../utils/validacion');
+const { productosData } = require('../data/productos');
+const { sequelize } = require('../config/database');
+const jwt = require('jsonwebtoken');
 
-/**
- * Controlador: Crear nueva orden
- * POST /orders
- */
-exports.crearOrden = async (req, res, next) => {
+exports.crearOrden = async (req, res) => {
   try {
-    const { error, value } = validarOrden(req.body);
+    const { items, direccion } = req.body;
+    
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token requerido'
+      });
+    }
 
-    if (error) {
-      const mensajes = error.details.map(d => d.message);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_secret_key');
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token inválido'
+      });
+    }
+
+    const usuarioId = decoded.id || decoded.usuarioId;
+    if (!usuarioId) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'No se pudo obtener el ID del usuario'
+      });
+    }
+
+    if (!items || items.length === 0) {
       return res.status(400).json({
         success: false,
-        mensajes
+        mensajes: ['items debe contener al menos 1 producto']
       });
     }
 
-    const { items, direccion, notas } = value;
+    if (!direccion || !direccion.calle || !direccion.ciudad || !direccion.codigoPostal || !direccion.pais) {
+      return res.status(400).json({
+        success: false,
+        mensajes: ['Todos los campos de dirección son requeridos']
+      });
+    }
+
     let total = 0;
-    const itemsProcessados = [];
-
-    // Procesar cada item del carrito
-    for (const item of items) {
-      const producto = await Product.findById(item.productoId);
-
+    const itemsValidados = items.map(item => {
+      const producto = productosData.find(p => p.id === parseInt(item.productoId));
+      
       if (!producto) {
-        return res.status(404).json({
-          success: false,
-          mensaje: `Producto con ID ${item.productoId} no encontrado`
-        });
+        throw new Error(`Producto con ID ${item.productoId} no encontrado`);
       }
 
-      // Verificar disponibilidad de stock
-      if (producto.stock < item.cantidad) {
-        return res.status(400).json({
-          success: false,
-          mensaje: `Stock insuficiente para ${producto.nombre}. Stock disponible: ${producto.stock}`
-        });
+      if (item.cantidad <= 0) {
+        throw new Error(`Cantidad debe ser mayor a 0`);
       }
 
-      // Calcular subtotal
-      const subtotal = producto.precio * item.cantidad;
+      if (item.cantidad > producto.stock) {
+        throw new Error(`Stock insuficiente para ${producto.nombre}`);
+      }
+
+      const subtotal = item.cantidad * producto.precio;
       total += subtotal;
 
-      itemsProcessados.push({
-        productoId: producto._id,
+      return {
+        productoId: item.productoId,
         nombre: producto.nombre,
-        precio: producto.precio,
         cantidad: item.cantidad,
-        subtotal
-      });
-
-      // Reducir stock
-      producto.stock -= item.cantidad;
-      await producto.save();
-    }
-
-    // Crear la orden
-    const orden = new Order({
-      usuarioId: req.usuario._id,
-      items: itemsProcessados,
-      total,
-      direccion,
-      notas,
-      estado: 'pendiente'
+        precio: producto.precio,
+        subtotal: subtotal
+      };
     });
 
-    await orden.save();
-    await orden.populate('usuarioId', 'nombre email');
-    await orden.populate('items.productoId');
+    const query = `INSERT INTO orders (usuarioId, items, total, estado, direccion, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`;
+    
+    const [result] = await sequelize.query(query, {
+      replacements: [usuarioId, JSON.stringify(itemsValidados), total, 'pendiente', JSON.stringify(direccion)],
+      type: 'INSERT'
+    });
 
     res.status(201).json({
       success: true,
       mensaje: 'Orden creada exitosamente',
-      orden
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Obtener órdenes del usuario autenticado
- * GET /orders/mis-ordenes
- */
-exports.obtenerMisOrdenes = async (req, res, next) => {
-  try {
-    const { pagina = 1, limite = 10 } = req.query;
-    const skip = (pagina - 1) * limite;
-
-    const ordenes = await Order.find({ usuarioId: req.usuario._id })
-      .populate('items.productoId', 'nombre imagen precio')
-      .limit(parseInt(limite))
-      .skip(skip)
-      .sort({ createdAt: -1 });
-
-    const total = await Order.countDocuments({ usuarioId: req.usuario._id });
-
-    res.status(200).json({
-      success: true,
-      total,
-      pagina: parseInt(pagina),
-      paginas: Math.ceil(total / limite),
-      ordenes
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Obtener una orden específica del usuario
- * GET /orders/:id
- */
-exports.obtenerOrdenPorId = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const orden = await Order.findById(id)
-      .populate('usuarioId', 'nombre email')
-      .populate('items.productoId');
-
-    if (!orden) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Orden no encontrada'
-      });
-    }
-
-    // Verificar que el usuario sea propietario o admin
-    if (orden.usuarioId._id.toString() !== req.usuario._id && !req.usuario.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        mensaje: 'No tienes permiso para acceder a esta orden'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      orden
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Obtener todas las órdenes (solo admin)
- * GET /orders
- */
-exports.obtenerTodasLasOrdenes = async (req, res, next) => {
-  try {
-    const { pagina = 1, limite = 10, estado } = req.query;
-    const skip = (pagina - 1) * limite;
-    const filtro = {};
-
-    if (estado) {
-      filtro.estado = estado;
-    }
-
-    const ordenes = await Order.find(filtro)
-      .populate('usuarioId', 'nombre email')
-      .populate('items.productoId', 'nombre imagen')
-      .limit(parseInt(limite))
-      .skip(skip)
-      .sort({ createdAt: -1 });
-
-    const total = await Order.countDocuments(filtro);
-
-    res.status(200).json({
-      success: true,
-      total,
-      pagina: parseInt(pagina),
-      paginas: Math.ceil(total / limite),
-      ordenes
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Actualizar estado de la orden (solo admin)
- * PUT /orders/:id/estado
- */
-exports.actualizarEstadoOrden = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { estado, numeroSeguimiento } = req.body;
-
-    const estadosValidos = ['pendiente', 'procesando', 'enviado', 'entregado', 'cancelado'];
-
-    if (!estado || !estadosValidos.includes(estado)) {
-      return res.status(400).json({
-        success: false,
-        mensaje: `Estado inválido. Estados válidos: ${estadosValidos.join(', ')}`
-      });
-    }
-
-    const actualizaciones = { estado };
-    if (numeroSeguimiento) {
-      actualizaciones.numeroSeguimiento = numeroSeguimiento;
-    }
-
-    const orden = await Order.findByIdAndUpdate(
-      id,
-      actualizaciones,
-      { new: true, runValidators: true }
-    ).populate('usuarioId', 'nombre email')
-     .populate('items.productoId');
-
-    if (!orden) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Orden no encontrada'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      mensaje: 'Estado de la orden actualizado',
-      orden
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Cancelar orden
- * PUT /orders/:id/cancelar
- */
-exports.cancelarOrden = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const orden = await Order.findById(id);
-
-    if (!orden) {
-      return res.status(404).json({
-        success: false,
-        mensaje: 'Orden no encontrada'
-      });
-    }
-
-    // Verificar que el usuario sea propietario o admin
-    if (orden.usuarioId.toString() !== req.usuario._id && !req.usuario.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        mensaje: 'No tienes permiso para cancelar esta orden'
-      });
-    }
-
-    // Solo se pueden cancelar órdenes pendientes o procesando
-    if (!['pendiente', 'procesando'].includes(orden.estado)) {
-      return res.status(400).json({
-        success: false,
-        mensaje: `No se puede cancelar una orden en estado ${orden.estado}`
-      });
-    }
-
-    // Restituir stock
-    for (const item of orden.items) {
-      const producto = await Product.findById(item.productoId);
-      if (producto) {
-        producto.stock += item.cantidad;
-        await producto.save();
-      }
-    }
-
-    orden.estado = 'cancelado';
-    await orden.save();
-
-    res.status(200).json({
-      success: true,
-      mensaje: 'Orden cancelada y stock restituido',
-      orden
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Controlador: Obtener estadísticas de órdenes (solo admin)
- * GET /orders/stats/dashboard
- */
-exports.obtenerEstadisticas = async (req, res, next) => {
-  try {
-    const totalOrdenes = await Order.countDocuments();
-    const ingresoTotal = await Order.aggregate([
-      { $group: { _id: null, total: { $sum: '$total' } } }
-    ]);
-
-    const ordenesPorEstado = await Order.aggregate([
-      { $group: { _id: '$estado', cantidad: { $sum: 1 } } }
-    ]);
-
-    const ordenesPorMes = await Order.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-          cantidad: { $sum: 1 },
-          total: { $sum: '$total' }
-        }
-      },
-      { $sort: { _id: -1 } },
-      { $limit: 12 }
-    ]);
-
-    res.status(200).json({
-      success: true,
-      estadisticas: {
-        totalOrdenes,
-        ingresoTotal: ingresoTotal[0]?.total || 0,
-        ordenesPorEstado,
-        ordenesPorMes
+      orden: {
+        id: result,
+        usuarioId: usuarioId,
+        items: itemsValidados,
+        total: total,
+        estado: 'pendiente',
+        direccion: direccion,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
+
   } catch (error) {
-    next(error);
+    console.error('Error creando orden:', error);
+    res.status(400).json({
+      success: false,
+      mensaje: error.message || 'Error al crear la orden'
+    });
+  }
+};
+
+exports.obtenerMisOrdenes = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token requerido'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_secret_key');
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token inválido'
+      });
+    }
+
+    const usuarioId = decoded.id || decoded.usuarioId;
+    if (!usuarioId) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'No se pudo obtener el ID del usuario'
+      });
+    }
+
+    const query = 'SELECT * FROM orders WHERE usuarioId = ? ORDER BY createdAt DESC';
+    const [ordenes] = await sequelize.query(query, {
+      replacements: [usuarioId],
+      type: 'SELECT'
+    });
+
+    res.json({
+      success: true,
+      ordenes: ordenes
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo órdenes:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al obtener órdenes'
+    });
+  }
+};
+
+exports.obtenerOrdenPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token requerido'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_secret_key');
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'Token inválido'
+      });
+    }
+
+    const usuarioId = decoded.id || decoded.usuarioId;
+    if (!usuarioId) {
+      return res.status(401).json({
+        success: false,
+        mensaje: 'No se pudo obtener el ID del usuario'
+      });
+    }
+
+    const query = 'SELECT * FROM orders WHERE id = ? AND usuarioId = ?';
+    const [rows] = await sequelize.query(query, {
+      replacements: [id, usuarioId],
+      type: 'SELECT'
+    });
+    
+    const orden = rows[0];
+
+    if (!orden) {
+      return res.status(404).json({
+        success: false,
+        mensaje: 'Orden no encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      orden: orden
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo orden:', error);
+    res.status(500).json({
+      success: false,
+      mensaje: 'Error al obtener la orden'
+    });
   }
 };
 
