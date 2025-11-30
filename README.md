@@ -1,8 +1,8 @@
-# 🛒 Backend Tienda de Manga - Documentación API
+# Backend Tienda de Manga - Documentación API
 
 Backend Node.js/Express completo para una tienda online de manga con autenticación JWT, gestión de productos y órdenes.
 
-## 📋 Características
+##  Características
 
  **Autenticación y Usuarios**
 - Registro y login de usuarios
