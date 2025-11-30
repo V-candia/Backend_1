@@ -1,91 +1,71 @@
-const mongoose = require('mongoose');
+const { DataTypes, JSON: SequelizeJSON } = require('sequelize');
+const { sequelize } = require('../config/database');
+const User = require('./User');
+const Product = require('./Product');
 
 /**
- * Esquema de Orden/Compra
+ * Modelo de Orden/Compra
  * - usuarioId: Referencia al usuario que hizo la compra
- * - items: Array de productos en la orden
+ * - items: Array de productos en JSON
  * - total: Total de la orden
- * - estado: Estado del pedido (pendiente, procesando, enviado, entregado, cancelado)
+ * - estado: Estado del pedido
  * - direccion: Dirección de envío
  */
-const orderSchema = new mongoose.Schema(
-  {
-    usuarioId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'El ID del usuario es requerido']
-    },
-    items: [
-      {
-        productoId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Product',
-          required: true
-        },
-        nombre: {
-          type: String,
-          required: true
-        },
-        precio: {
-          type: Number,
-          required: true
-        },
-        cantidad: {
-          type: Number,
-          required: true,
-          min: 1
-        },
-        subtotal: {
-          type: Number,
-          required: true
-        }
-      }
-    ],
-    total: {
-      type: Number,
-      required: [true, 'El total es requerido'],
-      min: 0
-    },
-    estado: {
-      type: String,
-      enum: ['pendiente', 'procesando', 'enviado', 'entregado', 'cancelado'],
-      default: 'pendiente'
-    },
-    direccion: {
-      calle: {
-        type: String,
-        required: true
-      },
-      ciudad: {
-        type: String,
-        required: true
-      },
-      codigoPostal: {
-        type: String,
-        required: true
-      },
-      pais: {
-        type: String,
-        required: true
-      }
-    },
-    notas: {
-      type: String,
-      trim: true
-    },
-    numeroSeguimiento: {
-      type: String
+const Order = sequelize.define('Order', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  usuarioId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: User,
+      key: 'id'
     }
   },
-  { 
-    timestamps: true
+  items: {
+    type: SequelizeJSON,
+    allowNull: false,
+    defaultValue: []
+  },
+  total: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
+  },
+  estado: {
+    type: DataTypes.ENUM('pendiente', 'procesando', 'enviado', 'entregado', 'cancelado'),
+    defaultValue: 'pendiente'
+  },
+  direccion: {
+    type: SequelizeJSON,
+    allowNull: false
+  },
+  notas: {
+    type: DataTypes.TEXT
+  },
+  numeroSeguimiento: {
+    type: DataTypes.STRING
   }
-);
+}, {
+  timestamps: true,
+  tableName: 'orders',
+  indexes: [
+    {
+      fields: ['usuarioId', 'createdAt']
+    },
+    {
+      fields: ['estado']
+    }
+  ]
+});
 
-/**
- * Índices para mejorar búsquedas
- */
-orderSchema.index({ usuarioId: 1, createdAt: -1 });
-orderSchema.index({ estado: 1 });
+// Relaciones
+Order.belongsTo(User, { foreignKey: 'usuarioId' });
+User.hasMany(Order, { foreignKey: 'usuarioId' });
 
-module.exports = mongoose.model('Order', orderSchema);
+module.exports = Order;

@@ -1,28 +1,50 @@
-const mongoose = require('mongoose');
+const { Sequelize } = require('sequelize');
 
 /**
- * Conecta a MongoDB usando Mongoose
+ * Conecta a MySQL usando Sequelize
+ * Variables de entorno requeridas:
+ * - DB_HOST: Host del servidor (localhost)
+ * - DB_PORT: Puerto (3306)
+ * - DB_NAME: Nombre de la base de datos
+ * - DB_USER: Usuario MySQL
+ * - DB_PASSWORD: Contraseña MySQL
+ */
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'manga_store',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD || '',
+  {
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
+    dialect: 'mysql',
+    logging: false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    }
+  }
+);
+
+/**
+ * Conecta a la base de datos
  * @returns {Promise} Promesa de la conexión
  */
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI;
+    await sequelize.authenticate();
+    console.log('OK MySQL conectado exitosamente');
     
-    if (!mongoUri) {
-      throw new Error('MONGO_URI no está definida en las variables de entorno');
-    }
-
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log('✅ MongoDB conectado exitosamente');
-    return mongoose.connection;
+    // Sincronizar modelos
+    await sequelize.sync({ alter: false });
+    console.log('OK Modelos sincronizados');
+    
+    return sequelize;
   } catch (error) {
-    console.error('❌ Error al conectar MongoDB:', error.message);
+    console.error('Error al conectar MySQL:', error.message);
     process.exit(1);
   }
 };
 
-module.exports = connectDB;
+module.exports = { sequelize, connectDB };

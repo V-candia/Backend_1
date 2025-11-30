@@ -1,7 +1,6 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
+const { connectDB, sequelize } = require('../config/database');
 const Product = require('../models/Product');
-const connectDB = require('../config/database');
 
 /**
  * Datos iniciales de mangas para la tienda
@@ -182,23 +181,23 @@ const seedDB = async () => {
     // Conectar a base de datos
     await connectDB();
 
-    // Limpiar colección anterior
-    await Product.deleteMany({});
-    console.log('📭 Colección de productos limpiada');
+    // Limpiar tabla anterior
+    await Product.destroy({ where: {} });
+    console.log('OK Tabla de productos limpiada');
 
     // Insertar nuevos productos
-    const productosCreados = await Product.insertMany(mangasSeed);
-    console.log(`✅ ${productosCreados.length} productos insertados exitosamente`);
+    const productosCreados = await Product.bulkCreate(mangasSeed);
+    console.log(`OK ${productosCreados.length} productos insertados exitosamente`);
 
     // Mostrar productos creados
-    console.log('\n📚 Productos en la base de datos:');
+    console.log('\nProductos en la base de datos:');
     productosCreados.forEach((prod, index) => {
       console.log(`${index + 1}. ${prod.nombre} - $${prod.precio}`);
     });
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error durante el seed:', error.message);
+    console.error('Error durante el seed:', error.message);
     process.exit(1);
   }
 };

@@ -1,76 +1,84 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 /**
- * Esquema de Producto
+ * Modelo de Producto
  * - nombre: Nombre del manga
  * - descripcion: Descripción del producto
  * - precio: Precio en unidades monetarias
  * - imagen: URL de la imagen
  * - stock: Cantidad disponible
- * - categoria: Categoría del manga (Shounen, Shoujo, Seinen, etc)
+ * - categoria: Categoría del manga
  */
-const productSchema = new mongoose.Schema(
-  {
-    nombre: {
-      type: String,
-      required: [true, 'El nombre del producto es requerido'],
-      trim: true,
-      maxlength: [100, 'El nombre no puede exceder 100 caracteres']
-    },
-    descripcion: {
-      type: String,
-      required: [true, 'La descripción es requerida'],
-      trim: true
-    },
-    precio: {
-      type: Number,
-      required: [true, 'El precio es requerido'],
-      min: [0, 'El precio no puede ser negativo']
-    },
-    imagen: {
-      type: String,
-      required: [true, 'La URL de la imagen es requerida']
-    },
-    stock: {
-      type: Number,
-      required: [true, 'El stock es requerido'],
-      min: [0, 'El stock no puede ser negativo'],
-      default: 0
-    },
-    categoria: {
-      type: String,
-      required: [true, 'La categoría es requerida'],
-      enum: ['Shounen', 'Shoujo', 'Seinen', 'Josei', 'Horror', 'Romance', 'Aventura', 'Comedia', 'Otro'],
-      default: 'Otro'
-    },
-    autor: {
-      type: String,
-      trim: true
-    },
-    editorial: {
-      type: String,
-      trim: true
-    },
-    calificacion: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0
-    },
-    numeroResenas: {
-      type: Number,
-      default: 0
+const Product = sequelize.define('Product', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  nombre: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    trim: true
+  },
+  descripcion: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  precio: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
     }
   },
-  { 
-    timestamps: true
+  imagen: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  stock: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: 0
+    }
+  },
+  categoria: {
+    type: DataTypes.ENUM('Shounen', 'Shoujo', 'Seinen', 'Josei', 'Horror', 'Romance', 'Aventura', 'Comedia', 'Otro'),
+    defaultValue: 'Otro'
+  },
+  autor: {
+    type: DataTypes.STRING,
+    trim: true
+  },
+  editorial: {
+    type: DataTypes.STRING,
+    trim: true
+  },
+  calificacion: {
+    type: DataTypes.DECIMAL(3, 2),
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      max: 5
+    }
+  },
+  numeroResenas: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   }
-);
+}, {
+  timestamps: true,
+  tableName: 'products',
+  indexes: [
+    {
+      fields: ['nombre', 'descripcion']
+    },
+    {
+      fields: ['categoria']
+    }
+  ]
+});
 
-/**
- * Índices para mejorar búsquedas
- */
-productSchema.index({ nombre: 'text', descripcion: 'text' });
-productSchema.index({ categoria: 1 });
-
-module.exports = mongoose.model('Product', productSchema);
+module.exports = Product;

@@ -8,12 +8,13 @@
     "dev": "nodemon server.js",
     "seed": "node src/utils/seed.js"
   },
-  "keywords": ["manga", "ecommerce", "express", "mongodb"],
+  "keywords": ["manga", "ecommerce", "express", "mysql"],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
-    "mongoose": "^7.5.0",
+    "sequelize": "^6.35.0",
+    "mysql2": "^3.6.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "dotenv": "^16.3.1",

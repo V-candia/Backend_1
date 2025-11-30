@@ -5,7 +5,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 // Importar conexión a BD
-const connectDB = require('./src/config/database');
+const { connectDB } = require('./src/config/database');
 
 // Importar rutas
 const authRoutes = require('./src/routes/auth');
@@ -21,7 +21,7 @@ const { errorHandler } = require('./src/middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Conectar a MongoDB
+// Conectar a MySQL
 connectDB();
 
 // ============================================
