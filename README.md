@@ -4,25 +4,25 @@ Backend Node.js/Express completo para una tienda online de manga con autenticaci
 
 ## 📋 Características
 
-✅ **Autenticación y Usuarios**
+ **Autenticación y Usuarios**
 - Registro y login de usuarios
 - Contraseñas hasheadas con bcrypt
 - JWT tokens para autenticación
 - Perfiles de usuario y roles (admin)
 
-✅ **Gestión de Productos**
+ **Gestión de Productos**
 - CRUD completo de productos
 - Filtrado por categoría
 - Búsqueda por texto
 - Paginación
 
-✅ **Sistema de Órdenes**
+ **Sistema de Órdenes**
 - Creación de órdenes desde carrito
 - Gestión de estado de órdenes
 - Control de stock automático
 - Seguimiento de pedidos
 
-✅ **Seguridad**
+ **Seguridad**
 - CORS configurado
 - Rate limiting
 - Validación de datos
@@ -30,7 +30,7 @@ Backend Node.js/Express completo para una tienda online de manga con autenticaci
 
 ---
 
-## 🚀 Inicio Rápido
+##  Inicio Rápido
 
 ### 1. Instalación
 
@@ -77,9 +77,9 @@ El servidor estará disponible en `http://localhost:5000`
 
 ---
 
-## 📚 Endpoints de la API
+##  Endpoints de la API
 
-### 🔐 AUTENTICACIÓN
+###  AUTENTICACIÓN
 
 #### Registrar usuario
 ```http
@@ -171,7 +171,7 @@ Content-Type: application/json
 
 ---
 
-### 📦 PRODUCTOS
+###  PRODUCTOS
 
 #### Listar todos los productos
 ```http
@@ -291,7 +291,7 @@ Content-Type: application/json
 
 ---
 
-### 🛍️ ÓRDENES
+###  ÓRDENES
 
 #### Crear orden
 ```http
@@ -403,7 +403,7 @@ Authorization: Bearer <token_admin>
 
 ---
 
-## 🔒 Autenticación
+##  Autenticación
 
 ### Usar el JWT Token
 
@@ -427,7 +427,7 @@ db.users.updateOne(
 
 ---
 
-## 🛠️ Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 Backend_1/
@@ -461,7 +461,7 @@ Backend_1/
 
 ---
 
-## 📦 Dependencias
+##  Dependencias
 
 ```json
 {
@@ -480,7 +480,7 @@ Backend_1/
 
 ---
 
-## 🚀 Deploy (Railway o Render)
+##  Deploy (Railway o Render)
 
 ### Railway.app
 
@@ -504,7 +504,7 @@ Backend_1/
 
 ---
 
-## ⚙️ Variables de Entorno (.env)
+##  Variables de Entorno (.env)
 
 ```env
 # Base de datos
@@ -524,7 +524,7 @@ LOG_LEVEL=debug
 
 ---
 
-## 🧪 Ejemplos de Uso
+##  Ejemplos de Uso
 
 ### Con cURL
 
@@ -576,7 +576,7 @@ const ordersResponse = await fetch('http://localhost:5000/api/orders/mis-ordenes
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "MONGO_URI no está definida"
 - Verificar que el archivo `.env` existe
@@ -598,23 +598,20 @@ PORT=5001
 
 ## 📝 Notas de Seguridad
 
-✅ Contraseñas hasheadas con bcrypt (10 salts)
-✅ JWT tokens con expiración de 30 días
-✅ Rate limiting en login (5 intentos en 15 min)
-✅ CORS configurado solo para dominio permitido
-✅ Validación de datos con Joi
-✅ Variables sensibles en .env (nunca en código)
-✅ Roles de usuario (admin vs usuario normal)
+ Contraseñas hasheadas con bcrypt (10 salts)
+ JWT tokens con expiración de 30 días
+ Rate limiting en login (5 intentos en 15 min)
+ CORS configurado solo para dominio permitido
+ Validación de datos con Joi
+ Variables sensibles en .env (nunca en código)
+ Roles de usuario (admin vs usuario normal)
 
 ---
 
-## 📞 Soporte
+##  Soporte
 
 Para problemas o preguntas:
 1. Revisa la documentación arriba
 2. Verifica los logs de la consola
 3. Comprueba que MongoDB está en línea
 
----
-
-**Creado con ❤️ para la comunidad de manga**
