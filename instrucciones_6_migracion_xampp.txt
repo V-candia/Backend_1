@@ -1,0 +1,236 @@
+MIGRACION DE MONGODB A XAMPP (MySQL)
+
+CAMBIOS REALIZADOS EN EL PROYECTO
+
+1. DEPENDENCIAS ACTUALIZADAS
+
+Eliminadas:
+- mongoose (MongoDB ODM)
+
+Agregadas:
+- sequelize (^6.35.0) - ORM para SQL
+- mysql2 (^3.6.0) - Driver MySQL
+
+package.json actualizado automaticamente.
+
+2. MODELOS CONVERTIDOS A SEQUELIZE
+
+User.js
+- Esquema Mongoose -> Modelo Sequelize
+- Validaciones mantenidas
+- Hooks para bcrypt configurados
+
+Product.js
+- Esquema Mongoose -> Modelo Sequelize
+- ENUM categories implementado
+- Índices configurados
+
+Order.js
+- Esquema Mongoose -> Modelo Sequelize
+- Relaciones con User configuradas
+- JSON para items y direccion
+
+3. CONFIGURACION DE BASE DE DATOS
+
+Archivo: src/config/database.js
+- Conexion MongoDB eliminada
+- Conexion Sequelize/MySQL implementada
+- Variables de entorno actualizadas
+
+4. VARIABLES DE ENTORNO NUEVAS
+
+Archivo: .env.example
+
+MongoDB (ANTES):
+MONGO_URI=mongodb+srv://...
+
+MySQL XAMPP (AHORA):
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=manga_store
+DB_USER=root
+DB_PASSWORD=
+
+INSTALACION DE XAMPP
+
+1. Descargar XAMPP
+- Ir a apachefriends.org
+- Descargar version para Windows
+- Ejecutar instalador
+
+2. Iniciar servicios
+- Abrir XAMPP Control Panel
+- Click en Start de Apache (opcional)
+- Click en Start de MySQL
+
+3. Crear base de datos
+- Abrir navegador
+- Ir a localhost/phpmyadmin
+- Click en Nueva (o New)
+- Nombre base de datos: manga_store
+- Colacion: utf8mb4_general_ci
+- Click Crear (Create)
+
+CONFIGURACION LOCAL
+
+1. Actualizar .env
+
+Si usas XAMPP en Windows (config por defecto):
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=manga_store
+DB_USER=root
+DB_PASSWORD=
+NODE_ENV=development
+
+2. Instalar dependencias
+npm install
+
+3. Inicializar base de datos
+npm run seed
+
+Este comando:
+- Conecta a MySQL
+- Crea las tablas
+- Inserta 15 mangas
+
+4. Ejecutar servidor
+npm run dev
+
+El servidor estara en http://localhost:5000
+
+CAMBIOS EN LOS CONTROLADORES
+
+Los controllers funcionan igual que antes pero ahora usan:
+- await Model.findAll() en lugar de find()
+- await Model.findByPk() en lugar de findById()
+- await Model.create() en lugar de save()
+- await Model.update() para actualizar
+
+Funcionalidad exacta se mantiene igual.
+
+CAMBIOS EN LAS RUTAS
+
+Las rutas funcionan identicamente. Solo el backend cambio.
+Los endpoints son los mismos:
+- POST /auth/register
+- POST /auth/login
+- GET /products
+- POST /orders
+- etc.
+
+MIGRACION DE DATOS
+
+Si tienes datos en MongoDB y quieres migrarlos:
+
+1. Exportar de MongoDB
+mongoexport --collection=users --out=users.json
+
+2. Convertir JSON a formato compatible
+(cambiar _id de ObjectId a autoincrement)
+
+3. Importar a MySQL
+Usar herramientas de import de phpMyAdmin
+
+TROUBLESHOOTING
+
+Problema: "Cannot find module 'mysql2'"
+Solucion:
+npm install
+
+Problema: "connect ECONNREFUSED 127.0.0.1:3306"
+- MySQL no esta corriendo
+- Abrir XAMPP Control Panel
+- Click Start en MySQL
+
+Problema: "Access denied for user 'root'@'localhost'"
+- Contraseña de root en .env no coincide
+- Por defecto MySQL root tiene contraseña vacia
+- DB_PASSWORD= (dejar en blanco)
+
+Problema: "Table 'manga_store' doesn't exist"
+- La base de datos no fue creada
+- Ir a phpmyadmin
+- Crear base de datos manga_store
+
+COMANDOS UTILES
+
+Iniciar MySQL (desde terminal):
+mysql -u root -p
+
+Ver bases de datos:
+SHOW DATABASES;
+
+Usar manga_store:
+USE manga_store;
+
+Ver tablas:
+SHOW TABLES;
+
+Ver estructura de tabla:
+DESCRIBE users;
+
+DEPLOYMENT A PRODUCCION
+
+Para produccion, en lugar de XAMPP local:
+1. Usar servidor MySQL en hosting (CPanel, Plesk, etc.)
+2. Cambiar variables de entorno:
+
+DB_HOST=tu-host.com
+DB_USER=usuario_db
+DB_PASSWORD=contraseña_segura
+DB_NAME=nombre_db
+
+3. Usar Railway o Render con MySQL addon
+4. O usar Amazon RDS / Google Cloud SQL
+
+VERIFICACION
+
+Despues de ejecutar npm run seed:
+
+Verificar en phpMyAdmin:
+1. Ir a localhost/phpmyadmin
+2. Ver base de datos: manga_store
+3. Tablas creadas: users, products, orders
+4. Products tiene 15 mangas
+
+Si ves "15 rows in set" en la tabla products, todo funciona!
+
+PROXIMOS PASOS
+
+1. Instalar dependencias: npm install
+2. Configurar MySQL en XAMPP
+3. Crear base de datos: manga_store
+4. Actualizar .env con credenciales
+5. Ejecutar seed: npm run seed
+6. Iniciar servidor: npm run dev
+7. Probar endpoints
+
+DIFERENCIAS CLAVE MongoDB vs MySQL
+
+MongoDB (ANTES):
+- NoSQL, sin esquema fijo
+- Documentos JSON
+- Conexion: mongoose
+- Consultas: filtros MongoDB
+
+MySQL (AHORA):
+- SQL, esquema estructurado
+- Tablas y columnas
+- Conexion: sequelize
+- Consultas: SQL estandar
+
+Pero para el usuario final:
+- Mismos endpoints
+- Mismos datos
+- Misma funcionalidad
+- Solo diferencia en backend
+
+SOPORTE
+
+Si tienes problemas:
+1. Verificar XAMPP esta corriendo
+2. Verificar .env configurado correctamente
+3. Verificar base de datos creada en phpMyAdmin
+4. Ver logs de error en terminal
+5. Revisar documentacion de Sequelize: sequelize.org
